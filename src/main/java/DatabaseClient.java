@@ -1,6 +1,10 @@
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
-import  java.sql.*;
+
+import java.math.BigDecimal;
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class DatabaseClient{
@@ -21,54 +25,74 @@ public class DatabaseClient{
     public static String getCustomerIDByCardID(String cardID, String pin) throws CustomerNotFoundException {
         try {
             Connection connection = getConnection();
+
             PreparedStatement statement = connection.prepareStatement("SELECT accountNumber FROM cards WHERE pin=? AND cardNumber=?;");
             statement.setString(1, pin);
             statement.setString(2, cardID);
             ResultSet result = statement.executeQuery();
+
             String acc = null;
             while (result.next()) {
                 acc = result.getString("accountNUmber");
                 System.out.println("Account number: " + acc);
             }
+
             if (acc == null) {
                 throw new CustomerNotFoundException("Invalid credentials.");
             }
+
             statement = connection.prepareStatement("SELECT customerID FROM accounts WHERE accountNumber=?;");
             statement.setString(1, acc);
             result = statement.executeQuery();
+
             String customerID = null;
             while(result.next()) {
                 customerID = result.getString("customerID");
             }
+
             if (customerID == null) {
                 throw new CustomerNotFoundException("Customer not found");
             }
+
             return customerID;
         } catch (ConnectionFailedException | SQLException throwable) {
-            throw new CustomerNotFoundException("Customer not found");
+            throw new CustomerNotFoundException("Something went wrong");
+        }
+    }
+
+    public static HashMap<String, BigDecimal> getCustomerBalances(String customerID) throws CustomerNotFoundException {
+        try {
+            Connection connection = getConnection();
+
+            PreparedStatement statement = connection.prepareStatement("SELECT * FROM accounts WHERE customerID=?;");
+            statement.setString(1, customerID);
+            ResultSet result = statement.executeQuery();
+
+            String accountNumber;
+            BigDecimal balance;
+            HashMap<String, BigDecimal> hashMap = new HashMap<>();
+
+            while (result.next()) {
+                accountNumber = result.getString("accountNUmber");
+                balance = result.getBigDecimal("balance");
+                hashMap.put(accountNumber, balance);
+            }
+
+            return hashMap;
+        } catch (ConnectionFailedException | SQLException throwable) {
+            throwable.printStackTrace();
+            throw new CustomerNotFoundException("Something went wrong");
         }
     }
 
     public static void main(String[] args) throws CustomerNotFoundException{
-        String a = getCustomerIDByCardID("5523112233445566", "0101");
-        System.out.println("Customer ID is : " + a);
+        String customerID = getCustomerIDByCardID("9999999999999999", "9999");
+        System.out.println("Customer ID is : " + customerID);
+
+        HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
+
+        for (Map.Entry<String, BigDecimal> pair : result.entrySet()) {
+            System.out.println("Balance of " + pair.getKey() + " is " + pair.getValue());
+        }
     }
-//    public static void main(String[] args) {
-//        try {
-//            Connection connection = getConnection();
-//            Statement statement = connection.createStatement();
-//            ResultSet cards = statement.executeQuery("SELECT * FROM cards;");
-//            System.out.println("YUHU");
-//
-//            while (cards.next()) {
-//                System.out.println(cards.getBigDecimal("cardNumber"));
-//                System.out.println(cards.getBigDecimal("accountNumber"));
-//                Object s = cards.getObject("type");
-//                System.out.println(s);
-//            }
-//
-//        } catch (SQLException | ConnectionFailedException throwable) {
-//            throwable.printStackTrace();
-//        }
-//    }
 }
