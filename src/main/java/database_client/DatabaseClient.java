@@ -1,26 +1,37 @@
+package database_client;
+
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
 import  java.sql.*;
 
 
 public class DatabaseClient{
+    public static final String URL = "jdbc:mysql://database-1.cbvxvxkpbwei.us-east-2.rds.amazonaws.com:3306/bank_db";
 
-    public static final String URL = "jdbc:mysql://localhost:3306/bank_db";
+//    public static final String URL = "jdbc:mysql://localhost:3306/bank_db";
     public static final String USERNAME = "atm";
-    public static final String PASSWORD = "123456";
+    public static final String PASSWORD = "atm-java";
+
 
     private static Connection getConnection() throws ConnectionFailedException {
         try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.err.println("Connecting process...");
+            //return DriverManager.getConnection(URL);
             return DriverManager.getConnection(URL, USERNAME, PASSWORD);
-        } catch (SQLException throwable) {
+        } catch (SQLException | ClassNotFoundException throwable) {
             throwable.printStackTrace();
+            System.err.println("Connection failed");
             throw new ConnectionFailedException("Failed to connect to the DB");
         }
     }
 
     public static String getCustomerIDByCardID(String cardID, String pin) throws CustomerNotFoundException {
         try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            System.err.println("Start connecting...");
             Connection connection = getConnection();
+            System.err.println("Connecting may be OK");
             PreparedStatement statement = connection.prepareStatement("SELECT accountNumber FROM cards WHERE pin=? AND cardNumber=?;");
             statement.setString(1, pin);
             statement.setString(2, cardID);
@@ -31,6 +42,7 @@ public class DatabaseClient{
                 System.out.println("Account number: " + acc);
             }
             if (acc == null) {
+                System.out.println("Invalid Credentials");
                 throw new CustomerNotFoundException("Invalid credentials.");
             }
             statement = connection.prepareStatement("SELECT customerID FROM accounts WHERE accountNumber=?;");
@@ -41,18 +53,20 @@ public class DatabaseClient{
                 customerID = result.getString("customerID");
             }
             if (customerID == null) {
+                System.out.println("Customer not found");
                 throw new CustomerNotFoundException("Customer not found");
             }
             return customerID;
-        } catch (ConnectionFailedException | SQLException throwable) {
+        } catch (ConnectionFailedException | SQLException | ClassNotFoundException throwable) {
+            System.out.println("Customer not found again");
             throw new CustomerNotFoundException("Customer not found");
         }
     }
 
-    public static void main(String[] args) throws CustomerNotFoundException{
-        String a = getCustomerIDByCardID("5523112233445566", "0101");
-        System.out.println("Customer ID is : " + a);
-    }
+//    public static void main(String[] args) throws CustomerNotFoundException{
+//        String a = getCustomerIDByCardID("5523112233445566", "0101");
+//        System.out.println("Customer ID is : " + a);
+//    }
 //    public static void main(String[] args) {
 //        try {
 //            Connection connection = getConnection();
