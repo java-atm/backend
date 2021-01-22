@@ -12,7 +12,7 @@ import java.util.Map;
 public class DatabaseClient{
     public static final String URL = "jdbc:mysql://database-1.cbvxvxkpbwei.us-east-2.rds.amazonaws.com:3306/bank_db";
 
-//    public static final String URL = "jdbc:mysql://localhost:3306/bank_db";
+    //public static final String URL = "jdbc:mysql://localhost:3306/bank_db";
     public static final String USERNAME = "atm";
     public static final String PASSWORD = "atm-java";
 
@@ -86,7 +86,7 @@ public class DatabaseClient{
             HashMap<String, BigDecimal> hashMap = new HashMap<>();
 
             while (result.next()) {
-                accountNumber = result.getString("accountNUmber");
+                accountNumber = result.getString("accountNumber");
                 balance = result.getBigDecimal("balance");
                 hashMap.put(accountNumber, balance);
             }
