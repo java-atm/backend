@@ -3,20 +3,32 @@ package database_client;
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.InetAddress;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
 
 public class DatabaseClient{
-    public static final String URL = "jdbc:mysql://database-1.cbvxvxkpbwei.us-east-2.rds.amazonaws.com:3306/bank_db";
 
-//    public static final String URL = "jdbc:mysql://localhost:3306/bank_db";
+    public static final String URL = detectConnectionURL();
     public static final String USERNAME = "atm";
     public static final String PASSWORD = "atm-java";
 
-
+    private static String detectConnectionURL() {
+        String hostname;
+        try {
+            hostname = InetAddress.getLocalHost().getHostName();
+        } catch (IOException e) {
+            return "jdbc:mysql://localhost:3306/bank_db";
+        }
+        if (hostname.equals("ip-172-31-47-225")) {
+            return "jdbc:mysql://database-1.cbvxvxkpbwei.us-east-2.rds.amazonaws.com:3306/bank_db";
+        }
+        return "jdbc:mysql://localhost:3306/bank_db";
+    }
     private static Connection getConnection() throws ConnectionFailedException {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
