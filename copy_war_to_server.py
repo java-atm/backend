@@ -3,7 +3,7 @@
 import os
 
 # Authorisation properties
-PATH_TO_PEM_FILE = "../atm-aws/atm.pem"
+PATH_TO_PEM_FILE = "atm.pem"
 
 # Destination properties
 USERNAME_OF_THE_SERVER = "ubuntu"
@@ -16,7 +16,7 @@ FULL_DESTINATION_PATH = HOST + PATH_OF_THE_DESTINATION
 PATH_OF_THE_WAR_FILE = "target/webapps/backend.war"
 
 if not os.path.isfile(PATH_TO_PEM_FILE):
-    raise RuntimeError("PEM file is not here, fix it you idiot")
+    raise RuntimeError("PEM file is not here, fix it you idiot, copy it to the current directory")
 
 if not os.path.isfile(PATH_OF_THE_WAR_FILE):
     raise RuntimeError("WAR FILE DOES NOT EXIST %s" % PATH_OF_THE_WAR_FILE)
