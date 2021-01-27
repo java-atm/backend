@@ -2,14 +2,17 @@ package database_client;
 
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
-import utils.exceptions.FailedToWithdrawException;
 import utils.exceptions.NoEnoughMoneyException;
+import utils.exceptions.AccountNotFoundException;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetAddress;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +22,20 @@ public class DatabaseClient{
     public static final String URL = detectConnectionURL();
     public static final String USERNAME = "atm";
     public static final String PASSWORD = "atm-java";
+
+    public static final String DEPOSIT_QUERY;
+    public static final String WITHDRAW_QUERY;
+    public static final String ACCOUNT_BY_CARD_QUERY;
+    public static final String CUSTOMER_ID_BY_ACCOUNT_QUERY;
+    public static final String ACCOUNTS_OF_CUSTOMER_QUERY;
+
+    static {
+        DEPOSIT_QUERY = "UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;";
+        WITHDRAW_QUERY = "UPDATE accounts SET balance = balance - ? WHERE accountNumber = ? AND currency = ?;";
+        ACCOUNT_BY_CARD_QUERY = "SELECT accountNumber FROM cards WHERE pin=? AND cardNumber=?;";
+        CUSTOMER_ID_BY_ACCOUNT_QUERY = "SELECT customerID FROM accounts WHERE accountNumber=?;";
+        ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT * FROM accounts WHERE customerID=?;";
+    }
 
     private static String detectConnectionURL() {
         String hostname;
@@ -50,7 +67,7 @@ public class DatabaseClient{
             Class.forName("com.mysql.cj.jdbc.Driver");
             Connection connection = getConnection();
 
-            PreparedStatement statement = connection.prepareStatement("SELECT accountNumber FROM cards WHERE pin=? AND cardNumber=?;");
+            PreparedStatement statement = connection.prepareStatement(ACCOUNT_BY_CARD_QUERY);
             statement.setString(1, pin);
             statement.setString(2, cardID);
             ResultSet result = statement.executeQuery();
@@ -66,7 +83,7 @@ public class DatabaseClient{
                 throw new CustomerNotFoundException("Invalid credentials.");
             }
 
-            statement = connection.prepareStatement("SELECT customerID FROM accounts WHERE accountNumber=?;");
+            statement = connection.prepareStatement(CUSTOMER_ID_BY_ACCOUNT_QUERY);
             statement.setString(1, acc);
             result = statement.executeQuery();
 
@@ -91,7 +108,7 @@ public class DatabaseClient{
         try {
             Connection connection = getConnection();
 
-            PreparedStatement statement = connection.prepareStatement("SELECT * FROM accounts WHERE customerID=?;");
+            PreparedStatement statement = connection.prepareStatement(ACCOUNTS_OF_CUSTOMER_QUERY);
             statement.setString(1, customerID);
             ResultSet result = statement.executeQuery();
 
@@ -112,43 +129,8 @@ public class DatabaseClient{
         }
     }
 
-    public static void withdrawFromAccount(String accountNumber, BigDecimal amount, String currency) throws NoEnoughMoneyException, FailedToWithdrawException, AccountNotFoundException{
-        try {
-            Connection connection = getConnection();
-
-            PreparedStatement statement = connection.prepareStatement("UPDATE accounts SET balance = balance - ? WHERE accountNumber = ? AND currency = ?;");
-            executeUpdate(accountNumber, amount, currency, statement);
-            System.out.println("Successfully withdrawn " + amount + " from " + accountNumber);
-        } catch (ConnectionFailedException | SQLException throwable) {
-            throwable.printStackTrace();
-            if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
-                throw new NoEnoughMoneyException("Insufficient finances.");
-            }
-            throwable.printStackTrace();
-            throw new FailedToWithdrawException("Failed to withdraw.");
-        }
-    }
-
-    public static void depositToAccount(String accountNumber, BigDecimal amount, String currency) throws NoEnoughMoneyException, FailedToWithdrawException, AccountNotFoundException{
-        try {
-            Connection connection = getConnection();
-
-            PreparedStatement statement = connection.prepareStatement("UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;");
-            executeUpdate(accountNumber, amount, currency, statement);
-            System.out.println("Successfully deposited " + amount + " to " + accountNumber);
-
-        } catch (ConnectionFailedException | SQLException throwable) {
-            throwable.printStackTrace();
-            if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
-                throw new NoEnoughMoneyException("Insufficient finances.");
-            }
-            throwable.printStackTrace();
-            throw new FailedToWithdrawException("Failed to withdraw.");
-        }
-    }
-
     private static void executeUpdate(String accountNumber, BigDecimal amount, String currency, PreparedStatement statement) throws SQLException, AccountNotFoundException {
-        statement.setString(1, String.valueOf(amount));
+        statement.setBigDecimal(1, amount);
         statement.setString(2, accountNumber);
         statement.setString(3, currency);
         int result = statement.executeUpdate();
@@ -160,20 +142,111 @@ public class DatabaseClient{
         }
     }
 
-    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, FailedToWithdrawException, AccountNotFoundException {
-//        String customerID = getCustomerIDByCardID("9999999999999999", "9999");
-//        System.out.println("Customer ID is : " + customerID);
-//
-//        HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
-//
-//        for (Map.Entry<String, BigDecimal> pair : result.entrySet()) {
-//            System.out.println("Balance of " + pair.getKey() + " is " + pair.getValue());
-//        }
+    public static void withdrawFromAccount(String accountNumber, BigDecimal amount, String currency) throws NoEnoughMoneyException, ConnectionFailedException, AccountNotFoundException{
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try {
+            PreparedStatement statement = connection.prepareStatement(WITHDRAW_QUERY);
+            executeUpdate(accountNumber, amount, currency, statement);
+            System.out.println("Successfully withdrawn " + amount + " from " + accountNumber);
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+            if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
+                throw new NoEnoughMoneyException("Insufficient finances.");
+            }
+            throwable.printStackTrace();
+            throw new ConnectionFailedException("Failed to withdraw.");
+        }
+    }
+
+    public static void depositToAccount(String accountNumber, BigDecimal amount, String currency) throws AccountNotFoundException, ConnectionFailedException{
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try {
+            PreparedStatement statement = connection.prepareStatement(DEPOSIT_QUERY);
+            executeUpdate(accountNumber, amount, currency, statement);
+            System.out.println("Successfully deposited " + amount + " to " + accountNumber);
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+            throw new ConnectionFailedException("Failed to withdraw.");
+        }
+    }
+
+    public static void transfer(String fromAccount, String toAccount, BigDecimal amount, String currency) throws ConnectionFailedException, AccountNotFoundException{
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try (PreparedStatement withdraw = connection.prepareStatement(WITHDRAW_QUERY);
+             PreparedStatement deposit = connection.prepareStatement(DEPOSIT_QUERY)) {
+
+            connection.setAutoCommit(false);
+            withdraw.setBigDecimal(1, amount);
+            withdraw.setString(2, fromAccount);
+            withdraw.setString(3, currency);
+
+            deposit.setBigDecimal(1, amount);
+            deposit.setString(2, toAccount);
+            deposit.setString(3, currency);
+
+            int withdrawResult = withdraw.executeUpdate();
+            int depositResult = deposit.executeUpdate();
+            if (withdrawResult == 1 && depositResult == 1) {
+                System.out.println("Successfully transferred");
+                connection.commit();
+            }
+            else {
+                System.out.println("Result of the updates: deposit: " + depositResult + " withdraw: " + withdrawResult);
+                throw new AccountNotFoundException("Failed to transfer money");
+            }
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+                e.printStackTrace();
+            } catch (SQLException throwable) {
+                throwable.printStackTrace();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException {
+        String customerID = getCustomerIDByCardID("9999999999999999", "9999");
+        System.out.println("Customer ID is : " + customerID);
+
+        HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
+
+        for (Map.Entry<String, BigDecimal> pair : result.entrySet()) {
+            System.out.println("Balance of " + pair.getKey() + " is " + pair.getValue());
+        }
         String accountNumber = "1111111111111111";
         BigDecimal amount = new BigDecimal("3467");
         withdrawFromAccount(accountNumber, amount, "AMD");
         amount = new BigDecimal("4444.34");
         depositToAccount(accountNumber, amount, "AMD");
 
+        String toAccount = "2222222222222222";
+        String fromAccount = "111111111111111";
+        BigDecimal transferAmount = new BigDecimal("4444.34");
+        transfer(fromAccount, toAccount, transferAmount, "AMD");
     }
 }
