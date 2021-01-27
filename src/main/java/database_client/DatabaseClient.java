@@ -33,7 +33,6 @@ public class DatabaseClient{
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             System.err.println("Connecting process...");
-            //return DriverManager.getConnection(URL);
             return DriverManager.getConnection(URL, USERNAME, PASSWORD);
         } catch (SQLException | ClassNotFoundException throwable) {
             throwable.printStackTrace();
@@ -98,7 +97,7 @@ public class DatabaseClient{
             HashMap<String, BigDecimal> hashMap = new HashMap<>();
 
             while (result.next()) {
-                accountNumber = result.getString("accountNUmber");
+                accountNumber = result.getString("accountNumber");
                 balance = result.getBigDecimal("balance");
                 hashMap.put(accountNumber, balance);
             }
