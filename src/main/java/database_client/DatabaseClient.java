@@ -58,12 +58,29 @@ public class DatabaseClient{
         }
     }
 
-    public static String getCustomerIDByCardID(String cardID, String pin) throws CustomerNotFoundException {
+    private static void closeConnection(Connection connection) throws ConnectionFailedException {
+        if (connection == null) {
+            System.out.println("No connection to close.");
+            return;
+        }
         try {
-            // @TODO This is probably not needed. Remove it.
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            Connection connection = getConnection();
+            connection.close();
+        } catch (SQLException e) {
+            throw new ConnectionFailedException(e.getMessage());
+        }
+    }
 
+    public static String getCustomerIDByCardID(String cardID, String pin) throws CustomerNotFoundException, ConnectionFailedException {
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try {
             PreparedStatement statement = connection.prepareStatement(ACCOUNT_BY_CARD_QUERY);
             statement.setString(1, pin);
             statement.setString(2, cardID);
@@ -95,16 +112,25 @@ public class DatabaseClient{
             }
 
             return customerID;
-        } catch (ConnectionFailedException | SQLException | ClassNotFoundException throwable) {
+        } catch (SQLException throwable) {
             System.out.println("Customer not found again");
             throw new CustomerNotFoundException("Customer not found");
+        } finally {
+            closeConnection(connection);
         }
     }
 
-    public static HashMap<String, BigDecimal> getCustomerBalances(String customerID) throws CustomerNotFoundException {
+    public static HashMap<String, BigDecimal> getCustomerBalances(String customerID) throws CustomerNotFoundException, ConnectionFailedException {
+        Connection connection = null;
         try {
-            Connection connection = getConnection();
-
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try {
             PreparedStatement statement = connection.prepareStatement(ACCOUNTS_OF_CUSTOMER_QUERY);
             statement.setString(1, customerID);
             ResultSet result = statement.executeQuery();
@@ -120,9 +146,11 @@ public class DatabaseClient{
             }
 
             return hashMap;
-        } catch (ConnectionFailedException | SQLException throwable) {
+        } catch (SQLException throwable) {
             throwable.printStackTrace();
             throw new CustomerNotFoundException("Something went wrong");
+        } finally {
+            closeConnection(connection);
         }
     }
 
@@ -160,6 +188,8 @@ public class DatabaseClient{
             }
             throwable.printStackTrace();
             throw new ConnectionFailedException("Failed to withdraw.");
+        } finally {
+            closeConnection(connection);
         }
     }
 
@@ -181,6 +211,8 @@ public class DatabaseClient{
         } catch (SQLException throwable) {
             throwable.printStackTrace();
             throw new ConnectionFailedException("Failed to withdraw.");
+        } finally {
+            closeConnection(connection);
         }
     }
 
@@ -194,9 +226,9 @@ public class DatabaseClient{
         if (connection == null) {
             throw new ConnectionFailedException("Failed to connect to the DB.");
         }
-        try (PreparedStatement withdraw = connection.prepareStatement(WITHDRAW_QUERY);
-             PreparedStatement deposit = connection.prepareStatement(DEPOSIT_QUERY)) {
-
+        try {
+            PreparedStatement withdraw = connection.prepareStatement(WITHDRAW_QUERY);
+            PreparedStatement deposit = connection.prepareStatement(DEPOSIT_QUERY);
             connection.setAutoCommit(false);
             withdraw.setBigDecimal(1, amount);
             withdraw.setString(2, fromAccount);
@@ -229,10 +261,15 @@ public class DatabaseClient{
                     throw new NoEnoughMoneyException("Insufficient finances.");
                 }
             }
+        } catch (AccountNotFoundException e) {
+                e.printStackTrace();
+                throw e;
+        } finally {
+            closeConnection(connection);
         }
     }
 
-    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException, TransferFailedException {
+    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException{
         String customerID = getCustomerIDByCardID("9999999999999999", "9999");
         System.out.println("Customer ID is : " + customerID);
 
@@ -248,8 +285,14 @@ public class DatabaseClient{
         depositToAccount(accountNumber, amount, "AMD");
 
         String toAccount = "2222222222222222";
-        String fromAccount = "111111111111111";
+        String fromAccount = "111111111111";
         BigDecimal transferAmount = new BigDecimal("4444.34");
+        try {
+            transfer(fromAccount, toAccount, transferAmount, "AMD");
+        } catch (AccountNotFoundException e) {
+            System.out.println(e.getMessage());
+        }
         transfer(fromAccount, toAccount, transferAmount, "AMD");
+
     }
 }

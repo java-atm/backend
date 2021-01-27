@@ -4,6 +4,7 @@ import database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 import utils.RequestReader;
+import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
 
 import javax.servlet.ServletException;
@@ -27,7 +28,7 @@ public class CheckBalanceServlet extends HttpServlet {
                 jsonObject = new JSONObject(accounts);
                 pr.print(jsonObject.toString());
                 pr.flush();
-            } catch (CustomerNotFoundException | JSONException ex) {
+            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException ex) {
                 response.setStatus(400);
                 pr.flush();
             }
