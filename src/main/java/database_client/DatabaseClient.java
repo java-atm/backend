@@ -1,9 +1,6 @@
 package database_client;
 
-import utils.exceptions.ConnectionFailedException;
-import utils.exceptions.CustomerNotFoundException;
-import utils.exceptions.NoEnoughMoneyException;
-import utils.exceptions.AccountNotFoundException;
+import utils.exceptions.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -187,7 +184,7 @@ public class DatabaseClient{
         }
     }
 
-    public static void transfer(String fromAccount, String toAccount, BigDecimal amount, String currency) throws ConnectionFailedException, AccountNotFoundException{
+    public static void transfer(String fromAccount, String toAccount, BigDecimal amount, String currency) throws ConnectionFailedException, AccountNotFoundException, NoEnoughMoneyException{
         Connection connection = null;
         try {
             connection = getConnection();
@@ -223,13 +220,19 @@ public class DatabaseClient{
             try {
                 connection.rollback();
                 e.printStackTrace();
+                if (e.getMessage().contains("Out of range value for column 'balance'")) {
+                    throw new NoEnoughMoneyException("Insufficient finances.");
+                }
             } catch (SQLException throwable) {
                 throwable.printStackTrace();
+                if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
+                    throw new NoEnoughMoneyException("Insufficient finances.");
+                }
             }
         }
     }
 
-    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException {
+    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException, TransferFailedException {
         String customerID = getCustomerIDByCardID("9999999999999999", "9999");
         System.out.println("Customer ID is : " + customerID);
 
