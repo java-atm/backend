@@ -8,7 +8,6 @@ import utils.RequestReader;
 import utils.exceptions.AccountNotFoundException;
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.NoEnoughMoneyException;
-import utils.exceptions.TransferFailedException;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;

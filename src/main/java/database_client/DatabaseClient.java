@@ -10,6 +10,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,13 +26,15 @@ public class DatabaseClient{
     public static final String ACCOUNT_BY_CARD_QUERY;
     public static final String CUSTOMER_ID_BY_ACCOUNT_QUERY;
     public static final String ACCOUNTS_OF_CUSTOMER_QUERY;
+    public static final String ACCOUNTS_WITHOUT_BALANCES_QUERY;
 
     static {
         DEPOSIT_QUERY = "UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;";
         WITHDRAW_QUERY = "UPDATE accounts SET balance = balance - ? WHERE accountNumber = ? AND currency = ?;";
         ACCOUNT_BY_CARD_QUERY = "SELECT accountNumber FROM cards WHERE pin=? AND cardNumber=?;";
         CUSTOMER_ID_BY_ACCOUNT_QUERY = "SELECT customerID FROM accounts WHERE accountNumber=?;";
-        ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT * FROM accounts WHERE customerID=?;";
+        ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT accountNumber, balance FROM accounts WHERE customerID=?;";
+        ACCOUNTS_WITHOUT_BALANCES_QUERY = "SELECT accountNumber FROM accounts WHERE customerID=?;";
     }
 
     private static String detectConnectionURL() {
@@ -120,6 +123,35 @@ public class DatabaseClient{
         }
     }
 
+    public static ArrayList<String> getCustomerAccounts(String customerID) throws CustomerNotFoundException,ConnectionFailedException {
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+
+        try (PreparedStatement statement = connection.prepareStatement(ACCOUNTS_WITHOUT_BALANCES_QUERY)){
+            statement.setString(1, customerID);
+            ResultSet result = statement.executeQuery();
+            ArrayList<String> accounts = new ArrayList<>();
+            String accountNumber;
+            while (result.next()) {
+                accountNumber = result.getString("accountNumber");
+                accounts.add(accountNumber);
+            }
+            return accounts;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new CustomerNotFoundException("Something went wrong");
+        } finally {
+            closeConnection(connection);
+        }
+    }
+
     public static HashMap<String, BigDecimal> getCustomerBalances(String customerID) throws CustomerNotFoundException, ConnectionFailedException {
         Connection connection = null;
         try {
@@ -130,8 +162,7 @@ public class DatabaseClient{
         if (connection == null) {
             throw new ConnectionFailedException("Failed to connect to the DB.");
         }
-        try {
-            PreparedStatement statement = connection.prepareStatement(ACCOUNTS_OF_CUSTOMER_QUERY);
+        try (PreparedStatement statement = connection.prepareStatement(ACCOUNTS_OF_CUSTOMER_QUERY)){
             statement.setString(1, customerID);
             ResultSet result = statement.executeQuery();
 
@@ -177,8 +208,8 @@ public class DatabaseClient{
         if (connection == null) {
             throw new ConnectionFailedException("Failed to connect to the DB.");
         }
-        try {
-            PreparedStatement statement = connection.prepareStatement(WITHDRAW_QUERY);
+        try (PreparedStatement statement = connection.prepareStatement(WITHDRAW_QUERY)){
+
             executeUpdate(accountNumber, amount, currency, statement);
             System.out.println("Successfully withdrawn " + amount + " from " + accountNumber);
         } catch (SQLException throwable) {
@@ -203,8 +234,8 @@ public class DatabaseClient{
         if (connection == null) {
             throw new ConnectionFailedException("Failed to connect to the DB.");
         }
-        try {
-            PreparedStatement statement = connection.prepareStatement(DEPOSIT_QUERY);
+        try (PreparedStatement statement = connection.prepareStatement(DEPOSIT_QUERY)){
+
             executeUpdate(accountNumber, amount, currency, statement);
             System.out.println("Successfully deposited " + amount + " to " + accountNumber);
 
@@ -226,9 +257,8 @@ public class DatabaseClient{
         if (connection == null) {
             throw new ConnectionFailedException("Failed to connect to the DB.");
         }
-        try {
-            PreparedStatement withdraw = connection.prepareStatement(WITHDRAW_QUERY);
-            PreparedStatement deposit = connection.prepareStatement(DEPOSIT_QUERY);
+        try (PreparedStatement withdraw = connection.prepareStatement(WITHDRAW_QUERY);
+             PreparedStatement deposit = connection.prepareStatement(DEPOSIT_QUERY)){
             connection.setAutoCommit(false);
             withdraw.setBigDecimal(1, amount);
             withdraw.setString(2, fromAccount);

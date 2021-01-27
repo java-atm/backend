@@ -1,6 +1,5 @@
 package servlets;
 
-
 import database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -8,7 +7,6 @@ import utils.RequestReader;
 import utils.exceptions.AccountNotFoundException;
 import utils.exceptions.ConnectionFailedException;
 
-import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;

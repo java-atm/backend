@@ -7,7 +7,6 @@ import utils.RequestReader;
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
 
-import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -19,7 +18,7 @@ import java.io.PrintWriter;
 @WebServlet(name = "AuthenticateServlet", urlPatterns = "/auth")
 public class AuthenticateServlet extends HttpServlet {
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
@@ -35,7 +34,7 @@ public class AuthenticateServlet extends HttpServlet {
         }
     }
 
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
 
 //        PrintWriter pr = response.getWriter();
 //        BufferedReader bufferedReader = new BufferedReader(
