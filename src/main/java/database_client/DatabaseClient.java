@@ -2,7 +2,10 @@ package database_client;
 
 import utils.exceptions.ConnectionFailedException;
 import utils.exceptions.CustomerNotFoundException;
+import utils.exceptions.FailedToWithdrawException;
+import utils.exceptions.NoEnoughMoneyException;
 
+import javax.security.auth.login.AccountNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.InetAddress;
@@ -109,14 +112,68 @@ public class DatabaseClient{
         }
     }
 
-    public static void main(String[] args) throws CustomerNotFoundException{
-        String customerID = getCustomerIDByCardID("9999999999999999", "9999");
-        System.out.println("Customer ID is : " + customerID);
+    public static void withdrawFromAccount(String accountNumber, BigDecimal amount, String currency) throws NoEnoughMoneyException, FailedToWithdrawException, AccountNotFoundException{
+        try {
+            Connection connection = getConnection();
 
-        HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
-
-        for (Map.Entry<String, BigDecimal> pair : result.entrySet()) {
-            System.out.println("Balance of " + pair.getKey() + " is " + pair.getValue());
+            PreparedStatement statement = connection.prepareStatement("UPDATE accounts SET balance = balance - ? WHERE accountNumber = ? AND currency = ?;");
+            executeUpdate(accountNumber, amount, currency, statement);
+            System.out.println("Successfully withdrawn " + amount + " from " + accountNumber);
+        } catch (ConnectionFailedException | SQLException throwable) {
+            throwable.printStackTrace();
+            if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
+                throw new NoEnoughMoneyException("Insufficient finances.");
+            }
+            throwable.printStackTrace();
+            throw new FailedToWithdrawException("Failed to withdraw.");
         }
+    }
+
+    public static void depositToAccount(String accountNumber, BigDecimal amount, String currency) throws NoEnoughMoneyException, FailedToWithdrawException, AccountNotFoundException{
+        try {
+            Connection connection = getConnection();
+
+            PreparedStatement statement = connection.prepareStatement("UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;");
+            executeUpdate(accountNumber, amount, currency, statement);
+            System.out.println("Successfully deposited " + amount + " to " + accountNumber);
+
+        } catch (ConnectionFailedException | SQLException throwable) {
+            throwable.printStackTrace();
+            if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
+                throw new NoEnoughMoneyException("Insufficient finances.");
+            }
+            throwable.printStackTrace();
+            throw new FailedToWithdrawException("Failed to withdraw.");
+        }
+    }
+
+    private static void executeUpdate(String accountNumber, BigDecimal amount, String currency, PreparedStatement statement) throws SQLException, AccountNotFoundException {
+        statement.setString(1, String.valueOf(amount));
+        statement.setString(2, accountNumber);
+        statement.setString(3, currency);
+        int result = statement.executeUpdate();
+        if (result == 1) {
+            System.out.println("Successful update with " + amount + " on " + accountNumber);
+        }
+        else {
+            throw new AccountNotFoundException("No account/currency matched");
+        }
+    }
+
+    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, FailedToWithdrawException, AccountNotFoundException {
+//        String customerID = getCustomerIDByCardID("9999999999999999", "9999");
+//        System.out.println("Customer ID is : " + customerID);
+//
+//        HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
+//
+//        for (Map.Entry<String, BigDecimal> pair : result.entrySet()) {
+//            System.out.println("Balance of " + pair.getKey() + " is " + pair.getValue());
+//        }
+        String accountNumber = "1111111111111111";
+        BigDecimal amount = new BigDecimal("3467");
+        withdrawFromAccount(accountNumber, amount, "AMD");
+        amount = new BigDecimal("4444.34");
+        depositToAccount(accountNumber, amount, "AMD");
+
     }
 }
