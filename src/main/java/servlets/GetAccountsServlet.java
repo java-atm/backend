@@ -35,7 +35,7 @@ public class GetAccountsServlet extends HttpServlet {
                 JSONObject result_json = new JSONObject();
                 if (includeBalances) {
                     HashMap<String, BigDecimal> result = DatabaseClient.getCustomerBalances(customerID);
-                    result_json.put("accountNumbers", result);
+                    result_json = new JSONObject(result);
 
                 } else {
                     ArrayList<String> result = DatabaseClient.getCustomerAccounts(customerID);
