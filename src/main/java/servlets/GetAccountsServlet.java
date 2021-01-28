@@ -1,5 +1,6 @@
 package servlets;
 
+
 import database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -16,6 +17,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
+
 
 @WebServlet(name = "GetAccountsServlet", urlPatterns = "/getAccountsByCustomerID")
 public class GetAccountsServlet extends HttpServlet {

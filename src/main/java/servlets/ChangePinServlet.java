@@ -1,11 +1,11 @@
 package servlets;
 
+
 import database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 import utils.RequestReader;
 import utils.exceptions.ConnectionFailedException;
-import utils.exceptions.CustomerNotFoundException;
 import utils.exceptions.PinChangeFailedException;
 
 import javax.servlet.annotation.WebServlet;
@@ -14,9 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
+
 
 @WebServlet(name = "ChangePinServlet", urlPatterns = "/changePin")
 public class ChangePinServlet extends HttpServlet {
