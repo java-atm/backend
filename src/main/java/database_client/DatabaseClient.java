@@ -27,14 +27,16 @@ public class DatabaseClient{
     public static final String CUSTOMER_ID_BY_ACCOUNT_QUERY;
     public static final String ACCOUNTS_OF_CUSTOMER_QUERY;
     public static final String ACCOUNTS_WITHOUT_BALANCES_QUERY;
+    public static final String PIN_CHANGE_QUERY;
 
     static {
         DEPOSIT_QUERY = "UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;";
         WITHDRAW_QUERY = "UPDATE accounts SET balance = balance - ? WHERE accountNumber = ? AND currency = ?;";
-        ACCOUNT_BY_CARD_QUERY = "SELECT accountNumber FROM cards WHERE pin=? AND cardNumber=?;";
-        CUSTOMER_ID_BY_ACCOUNT_QUERY = "SELECT customerID FROM accounts WHERE accountNumber=?;";
-        ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT accountNumber, balance FROM accounts WHERE customerID=?;";
-        ACCOUNTS_WITHOUT_BALANCES_QUERY = "SELECT accountNumber FROM accounts WHERE customerID=?;";
+        ACCOUNT_BY_CARD_QUERY = "SELECT accountNumber FROM cards WHERE pin = ? AND cardNumber = ?;";
+        CUSTOMER_ID_BY_ACCOUNT_QUERY = "SELECT customerID FROM accounts WHERE accountNumber = ?;";
+        ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT accountNumber, balance FROM accounts WHERE customerID = ?;";
+        ACCOUNTS_WITHOUT_BALANCES_QUERY = "SELECT accountNumber FROM accounts WHERE customerID = ?;";
+        PIN_CHANGE_QUERY = "UPDATE cards SET pin = ? WHERE cardNumber=?;";
     }
 
     private static String detectConnectionURL() {
@@ -284,22 +286,66 @@ public class DatabaseClient{
                 e.printStackTrace();
                 if (e.getMessage().contains("Out of range value for column 'balance'")) {
                     throw new NoEnoughMoneyException("Insufficient finances.");
+                } else {
+                    throw new AccountNotFoundException("Failed to transfer money");
                 }
             } catch (SQLException throwable) {
                 throwable.printStackTrace();
                 if (throwable.getMessage().contains("Out of range value for column 'balance'")) {
                     throw new NoEnoughMoneyException("Insufficient finances.");
+                } else {
+                    throw new AccountNotFoundException("Failed to transfer money");
                 }
             }
-        } catch (AccountNotFoundException e) {
-                e.printStackTrace();
-                throw e;
         } finally {
             closeConnection(connection);
         }
     }
 
-    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException{
+    public static void changePin(String cardNumber, String newPin) throws ConnectionFailedException, PinChangeFailedException{
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try (PreparedStatement changePin = connection.prepareStatement(PIN_CHANGE_QUERY))
+        {
+            connection.setAutoCommit(false);
+            changePin.setString(1, newPin);
+            changePin.setString(2, cardNumber);
+            int result = changePin.executeUpdate();
+            if (result == 1) {
+                System.out.println("Pin changed successfully");
+                connection.commit();
+            } else {
+                System.out.println("Result of the update: " + result);
+                throw new PinChangeFailedException("Failed to change pin");
+            }
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+                e.printStackTrace();
+                if (e.getMessage().contains("Data truncation: Data too long for column 'pin'")) {
+                    throw new PinChangeFailedException("Pin too long");
+                }
+                throw new PinChangeFailedException("Failed to change the pin");
+            } catch (SQLException throwable) {
+                throwable.printStackTrace();
+                if (e.getMessage().contains("Data truncation: Data too long for column 'pin'")) {
+                    throw new PinChangeFailedException("Pin too long");
+                }
+                throw new PinChangeFailedException("Failed to change the pin");
+            }
+        } finally {
+            closeConnection(connection);
+        }
+    }
+
+    public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException, PinChangeFailedException {
         String customerID = getCustomerIDByCardID("9999999999999999", "9999");
         System.out.println("Customer ID is : " + customerID);
 
@@ -314,8 +360,8 @@ public class DatabaseClient{
         amount = new BigDecimal("4444.34");
         depositToAccount(accountNumber, amount, "AMD");
 
-        String toAccount = "2222222222222222";
-        String fromAccount = "111111111111";
+        String toAccount =   "2222222222222222";
+        String fromAccount = "1111111111111111";
         BigDecimal transferAmount = new BigDecimal("4444.34");
         try {
             transfer(fromAccount, toAccount, transferAmount, "AMD");
@@ -323,6 +369,8 @@ public class DatabaseClient{
             System.out.println(e.getMessage());
         }
         transfer(fromAccount, toAccount, transferAmount, "AMD");
+        changePin("9999999999999999", "9998");
+        changePin("9999999999999999", "9999");
 
     }
 }
