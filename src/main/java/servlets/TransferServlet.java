@@ -26,12 +26,19 @@ public class TransferServlet extends HttpServlet {
             try {
                 String fromAccount = jsonObject.get("from").toString();
                 String toAccount = jsonObject.get("to").toString();
-
                 String currency = jsonObject.get("currency").toString();
                 BigDecimal amount = new BigDecimal(jsonObject.get("amount").toString());
                 if (amount.signum() == -1) {
+                    String message = "Negative transfer rejected";
                     response.setStatus(400);
-                    pr.write("Negative transfer rejected.");
+                    pr.write(message);
+                    pr.flush();
+                    return;
+                }
+                if (toAccount.strip().equals(fromAccount.strip())) {
+                    String message = "From and To accounts are the same";
+                    response.setStatus(400);
+                    pr.write(message);
                     pr.flush();
                     return;
                 }
