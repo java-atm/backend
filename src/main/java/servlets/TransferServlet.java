@@ -24,6 +24,13 @@ public class TransferServlet extends HttpServlet {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
+                String atm_id = jsonObject.get("atm_id").toString();
+                if (! DatabaseClient.verifyATMID(atm_id)) {
+                    response.setStatus(400);
+                    pr.write("ATM ID not found");
+                    pr.flush();
+                    return;
+                }
                 String fromAccount = jsonObject.get("from").toString();
                 String toAccount = jsonObject.get("to").toString();
                 String currency = jsonObject.get("currency").toString();
@@ -47,6 +54,7 @@ public class TransferServlet extends HttpServlet {
                 pr.flush();
             } catch (JSONException ex) {
                 response.setStatus(400);
+                pr.write(ex.getMessage());
                 pr.flush();
             } catch (AccountNotFoundException | ConnectionFailedException | NoEnoughMoneyException e) {
                 response.setStatus(400);

@@ -22,15 +22,23 @@ public class GetCustomerNameServlet extends HttpServlet {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
+                String atm_id = jsonObject.get("atm_id").toString();
+                if (! DatabaseClient.verifyATMID(atm_id)) {
+                    response.setStatus(400);
+                    pr.write("ATM ID not found");
+                    pr.flush();
+                    return;
+                }
                 String accountNumber = jsonObject.get("accountNumber").toString();
 
                 String customerName= DatabaseClient.getCustomerFullNameByAccountNumber(accountNumber);
 
                 pr.print(customerName);
                 pr.flush();
-            } catch (JSONException | ConnectionFailedException | CustomerNotFoundException ex) {
-                pr.write(ex.getMessage());
+            } catch (JSONException | ConnectionFailedException | CustomerNotFoundException e) {
                 response.setStatus(400);
+                pr.write(e.getMessage());
+                e.printStackTrace();
                 pr.flush();
             }
         }

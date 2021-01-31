@@ -22,6 +22,13 @@ public class ChangePinServlet extends HttpServlet {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
+                String atm_id = jsonObject.get("atm_id").toString();
+                if (! DatabaseClient.verifyATMID(atm_id)) {
+                    response.setStatus(400);
+                    pr.write("ATM ID not found");
+                    pr.flush();
+                    return;
+                }
                 String cardNumber = jsonObject.get("cardNumber").toString();
                 String newPin = jsonObject.get("newPin").toString();
 
@@ -29,9 +36,10 @@ public class ChangePinServlet extends HttpServlet {
 
                 pr.print("Success");
                 pr.flush();
-            } catch (JSONException | ConnectionFailedException | PinChangeFailedException ex) {
-                pr.write(ex.getMessage());
+            } catch (JSONException | ConnectionFailedException | PinChangeFailedException e) {
                 response.setStatus(400);
+                pr.write(e.getMessage());
+                e.printStackTrace();
                 pr.flush();
             }
         }

@@ -25,6 +25,7 @@ public class DatabaseClient {
     public static final String ACCOUNTS_OF_CUSTOMER_QUERY;
     public static final String ACCOUNTS_WITHOUT_BALANCES_QUERY;
     public static final String PIN_CHANGE_QUERY;
+    public static final String VERIFY_ATM_ID;
 
     static {
         DEPOSIT_QUERY = "UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;";
@@ -35,6 +36,7 @@ public class DatabaseClient {
         ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT accountNumber, balance FROM accounts WHERE customerID = ?;";
         ACCOUNTS_WITHOUT_BALANCES_QUERY = "SELECT accountNumber FROM accounts WHERE customerID = ?;";
         PIN_CHANGE_QUERY = "UPDATE cards SET pin = ? WHERE cardNumber=?;";
+        VERIFY_ATM_ID = "SELECT COUNT(id) FROM atms WHERE id = ?;";
     }
 
     private static String detectConnectionURL() {
@@ -74,6 +76,31 @@ public class DatabaseClient {
         }
     }
 
+    public static boolean verifyATMID(String atm_id) throws ConnectionFailedException {
+        Connection connection = null;
+        try {
+            connection = getConnection();
+        } catch (ConnectionFailedException throwable) {
+            throwable.printStackTrace();
+        }
+        if (connection == null) {
+            throw new ConnectionFailedException("Failed to connect to the DB.");
+        }
+        try (PreparedStatement statement = connection.prepareStatement(VERIFY_ATM_ID)) {
+            statement.setString(1, atm_id);
+            ResultSet result = statement.executeQuery();
+            while( result.next()) {
+                return result.getInt(1) == 1;
+            }
+            return false;
+
+        } catch (SQLException throwable) {
+            throwable.printStackTrace();
+            return false;
+        } finally {
+            closeConnection(connection);
+        }
+    }
     public static String getCustomerIDByCardID(String cardID, String pin) throws CustomerNotFoundException, ConnectionFailedException {
         Connection connection = null;
         try {
@@ -418,5 +445,7 @@ public class DatabaseClient {
         changePin("9999999999999999", "9999");
         String customerName = getCustomerFullNameByAccountNumber("2222222222222222");
         System.out.println(customerName);
+
+        System.out.println(verifyATMID("HAT_INECOBANK_ATM_021"));
     }
 }
