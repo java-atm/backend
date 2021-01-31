@@ -24,13 +24,22 @@ public class CheckBalanceServlet extends HttpServlet {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
+                String atm_id = jsonObject.get("atm_id").toString();
+                if (! DatabaseClient.verifyATMID(atm_id)) {
+                    response.setStatus(400);
+                    pr.write("ATM ID not found");
+                    pr.flush();
+                    return;
+                }
                 String customerID = jsonObject.get("customerID").toString();
                 HashMap<String, BigDecimal> accounts = DatabaseClient.getCustomerBalances(customerID);
                 jsonObject = new JSONObject(accounts);
                 pr.print(jsonObject.toString());
                 pr.flush();
-            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException ex) {
+            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException e) {
                 response.setStatus(400);
+                pr.write(e.getMessage());
+                e.printStackTrace();
                 pr.flush();
             }
         }

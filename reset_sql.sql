@@ -183,13 +183,6 @@ INSERT INTO accounts (
 
 
 
-
-
-
-
-
-
-
 INSERT INTO cards (
     cardNumber,
     accountNumber,

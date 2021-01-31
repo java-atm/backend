@@ -25,6 +25,13 @@ public class GetAccountsServlet extends HttpServlet {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
+                String atm_id = jsonObject.get("atm_id").toString();
+                if (! DatabaseClient.verifyATMID(atm_id)) {
+                    response.setStatus(400);
+                    pr.write("ATM ID not found");
+                    pr.flush();
+                    return;
+                }
                 String customerID = jsonObject.get("customerID").toString();
                 boolean includeBalances = true;
                 try {
@@ -43,9 +50,10 @@ public class GetAccountsServlet extends HttpServlet {
                 }
                 pr.print(result_json.toString());
                 pr.flush();
-            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException ex) {
-                pr.write(ex.getMessage());
+            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException e) {
                 response.setStatus(400);
+                pr.write(e.getMessage());
+                e.printStackTrace();
                 pr.flush();
             }
         }

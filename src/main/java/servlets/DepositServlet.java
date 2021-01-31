@@ -23,6 +23,13 @@ public class DepositServlet extends HttpServlet {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
             try {
+                String atm_id = jsonObject.get("atm_id").toString();
+                if (! DatabaseClient.verifyATMID(atm_id)) {
+                    response.setStatus(400);
+                    pr.write("ATM ID not found");
+                    pr.flush();
+                    return;
+                }
                 String accountNumber = jsonObject.get("accountNumber").toString();
                 String currency = jsonObject.get("currency").toString();
                 BigDecimal amount = new BigDecimal(jsonObject.get("amount").toString());
@@ -35,14 +42,11 @@ public class DepositServlet extends HttpServlet {
                 DatabaseClient.depositToAccount(accountNumber, amount, currency);
                 pr.print("Success");
                 pr.flush();
-            } catch (JSONException ex) {
-                response.setStatus(400);
-                pr.flush();
-            } catch (AccountNotFoundException | ConnectionFailedException e) {
+            } catch (JSONException | AccountNotFoundException | ConnectionFailedException e) {
                 response.setStatus(400);
                 pr.write(e.getMessage());
-                pr.flush();
                 e.printStackTrace();
+                pr.flush();
             }
         }
     }
