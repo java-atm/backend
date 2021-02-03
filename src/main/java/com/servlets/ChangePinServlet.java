@@ -1,12 +1,13 @@
-package servlets;
+package com.servlets;
 
 
-import database_client.DatabaseClient;
+import com.database_client.DatabaseClient;
+import com.utils.exceptions.NewPinTooLongException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import utils.RequestReader;
-import utils.exceptions.ConnectionFailedException;
-import utils.exceptions.PinChangeFailedException;
+import com.utils.readers.RequestReader;
+import com.utils.exceptions.ConnectionFailedException;
+import com.utils.exceptions.PinChangeFailedException;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -36,7 +37,7 @@ public class ChangePinServlet extends HttpServlet {
 
                 pr.print("Success");
                 pr.flush();
-            } catch (JSONException | ConnectionFailedException | PinChangeFailedException e) {
+            } catch (JSONException | ConnectionFailedException | PinChangeFailedException | NewPinTooLongException e) {
                 response.setStatus(400);
                 pr.write(e.getMessage());
                 e.printStackTrace();

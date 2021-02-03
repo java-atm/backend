@@ -1,4 +1,4 @@
-package utils.exceptions;
+package com.utils.exceptions;
 
 public class PinChangeFailedException extends Exception{
     public PinChangeFailedException(String errorMessage) {

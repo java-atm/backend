@@ -7,23 +7,23 @@
         <RollingFile name="backend_logs"
                      filename="logs/backend_logs.log"
                      filePattern="backend_logs-%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout pattern="{%-5level} %d{dd.MM.yyyy hh:mm:ss.SSS} [%t] %logger %msg%n%throwable"/>
+            <PatternLayout pattern="{%-5level} %d{dd.MM.yyyy hh:mm:ss} [%t] %logger.%M:>> %msg%n%throwable"/>
             <Policies>
-                <SizeBasedTriggeringPolicy size="1000 kB"/>
+                <SizeBasedTriggeringPolicy size="1024 kB"/>
             </Policies>
         </RollingFile>
 
         <RollingFile name="backend_error_logs"
                      filename="logs/backend_error_logs.log"
                      filePattern="backend_error_logs-%d{yyyy-MM-dd}-%i.log.gz">
-            <PatternLayout pattern="{%-5level} %d{dd.MM.yyyy hh:mm:ss} [%t] %logger %msg%n%throwable"/>
+            <PatternLayout pattern="{%-5level} %d{dd.MM.yyyy hh:mm:ss} [%t] %logger.%M:>> %msg%n%throwable"/>
             <Policies>
-                <SizeBasedTriggeringPolicy size="1000 kB"/>
+                <SizeBasedTriggeringPolicy size="1024 kB"/>
             </Policies>
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Logger name="database_client" level="info" additivity="true">
+        <Logger name="com" level="info" additivity="true">
             <AppenderRef ref="backend_error_logs" level="error"/>
             <AppenderRef ref="backend_logs" level="info"/>
         </Logger>

@@ -1,4 +1,4 @@
-package utils;
+package com.utils.readers;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
