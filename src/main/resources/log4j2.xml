@@ -6,7 +6,7 @@
         </Console>
         <RollingFile name="backend_logs"
                      filename="logs/backend_logs.log"
-                     filePattern="backend_logs-%d{yyyy-MM-dd}-%i.log.gz">
+                     filePattern="logs/backend_logs-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout pattern="{%-5level} %d{dd.MM.yyyy hh:mm:ss} [%t] %logger.%M:>> %msg%n%throwable"/>
             <Policies>
                 <SizeBasedTriggeringPolicy size="1024 kB"/>
@@ -15,7 +15,7 @@
 
         <RollingFile name="backend_error_logs"
                      filename="logs/backend_error_logs.log"
-                     filePattern="backend_error_logs-%d{yyyy-MM-dd}-%i.log.gz">
+                     filePattern="logs/backend_error_logs-%d{yyyy-MM-dd}-%i.log.gz">
             <PatternLayout pattern="{%-5level} %d{dd.MM.yyyy hh:mm:ss} [%t] %logger.%M:>> %msg%n%throwable"/>
             <Policies>
                 <SizeBasedTriggeringPolicy size="1024 kB"/>
