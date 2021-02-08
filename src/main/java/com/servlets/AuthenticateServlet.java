@@ -1,11 +1,12 @@
-package servlets;
+package com.servlets;
 
 
-import database_client.DatabaseClient;
+import com.database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
-import utils.RequestReader;
-import utils.exceptions.ConnectionFailedException;
+import com.utils.readers.RequestReader;
+import com.utils.exceptions.ConnectionFailedException;
+import com.utils.exceptions.CustomerNotFoundException;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -15,8 +16,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 
-@WebServlet(name = "CheckConnectionServlet", urlPatterns = "/checkConnection")
-public class CheckConnectionServlet extends HttpServlet {
+@WebServlet(name = "AuthenticateServlet", urlPatterns = "/auth")
+public class AuthenticateServlet extends HttpServlet {
+
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
@@ -28,9 +30,12 @@ public class CheckConnectionServlet extends HttpServlet {
                     pr.flush();
                     return;
                 }
-                pr.print("Success");
+                String cardNumber = jsonObject.getJSONObject("card_info").get("CARD_NUMBER").toString();
+                String pin = jsonObject.get("pin").toString();
+                String customerID = DatabaseClient.getCustomerIDByCardID(cardNumber, pin);
+                pr.print(customerID);
                 pr.flush();
-            } catch (ConnectionFailedException | JSONException e) {
+            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException e) {
                 response.setStatus(400);
                 pr.write(e.getMessage());
                 e.printStackTrace();

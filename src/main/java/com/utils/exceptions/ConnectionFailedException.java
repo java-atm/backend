@@ -1,4 +1,4 @@
-package utils.exceptions;
+package com.utils.exceptions;
 
 public class ConnectionFailedException extends Exception{
     public ConnectionFailedException(String errorMessage) {

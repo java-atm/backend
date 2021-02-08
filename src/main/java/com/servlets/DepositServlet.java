@@ -1,12 +1,12 @@
-package servlets;
+package com.servlets;
 
 
-import database_client.DatabaseClient;
+import com.database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
-import utils.RequestReader;
-import utils.exceptions.ConnectionFailedException;
-import utils.exceptions.CustomerNotFoundException;
+import com.utils.readers.RequestReader;
+import com.utils.exceptions.ConnectionFailedException;
+import com.utils.exceptions.AccountNotFoundException;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -14,11 +14,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
 
 
-@WebServlet(name = "AuthenticateServlet", urlPatterns = "/auth")
-public class AuthenticateServlet extends HttpServlet {
-
+@WebServlet(name = "DepositServlet", urlPatterns = "/deposit")
+public class DepositServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
@@ -30,12 +30,19 @@ public class AuthenticateServlet extends HttpServlet {
                     pr.flush();
                     return;
                 }
-                String cardNumber = jsonObject.getJSONObject("card_info").get("CARD_NUMBER").toString();
-                String pin = jsonObject.get("pin").toString();
-                String customerID = DatabaseClient.getCustomerIDByCardID(cardNumber, pin);
-                pr.print(customerID);
+                String accountNumber = jsonObject.get("accountNumber").toString();
+                String currency = jsonObject.get("currency").toString();
+                BigDecimal amount = new BigDecimal(jsonObject.get("amount").toString());
+                if (amount.signum() == -1) {
+                    response.setStatus(400);
+                    pr.write("Negative deposit rejected.");
+                    pr.flush();
+                    return;
+                }
+                DatabaseClient.depositToAccount(accountNumber, amount, currency);
+                pr.print("Success");
                 pr.flush();
-            } catch (CustomerNotFoundException | JSONException | ConnectionFailedException e) {
+            } catch (JSONException | AccountNotFoundException | ConnectionFailedException e) {
                 response.setStatus(400);
                 pr.write(e.getMessage());
                 e.printStackTrace();

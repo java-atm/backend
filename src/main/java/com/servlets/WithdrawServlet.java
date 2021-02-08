@@ -1,12 +1,13 @@
-package servlets;
+package com.servlets;
 
 
-import database_client.DatabaseClient;
+import com.database_client.DatabaseClient;
 import org.json.JSONException;
 import org.json.JSONObject;
-import utils.RequestReader;
-import utils.exceptions.ConnectionFailedException;
-import utils.exceptions.AccountNotFoundException;
+import com.utils.readers.RequestReader;
+import com.utils.exceptions.AccountNotFoundException;
+import com.utils.exceptions.ConnectionFailedException;
+import com.utils.exceptions.NoEnoughMoneyException;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -17,8 +18,8 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 
 
-@WebServlet(name = "DepositServlet", urlPatterns = "/deposit")
-public class DepositServlet extends HttpServlet {
+@WebServlet(name = "WithdrawServlet", urlPatterns = "/withdraw")
+public class WithdrawServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try (PrintWriter pr = response.getWriter()) {
             JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
@@ -35,14 +36,17 @@ public class DepositServlet extends HttpServlet {
                 BigDecimal amount = new BigDecimal(jsonObject.get("amount").toString());
                 if (amount.signum() == -1) {
                     response.setStatus(400);
-                    pr.write("Negative deposit rejected.");
+                    pr.write("Negative withdrawal rejected.");
                     pr.flush();
                     return;
                 }
-                DatabaseClient.depositToAccount(accountNumber, amount, currency);
+                DatabaseClient.withdrawFromAccount(accountNumber, amount, currency);
                 pr.print("Success");
                 pr.flush();
-            } catch (JSONException | AccountNotFoundException | ConnectionFailedException e) {
+            } catch (JSONException ex) {
+                response.setStatus(400);
+                pr.flush();
+            } catch (AccountNotFoundException | ConnectionFailedException | NoEnoughMoneyException e) {
                 response.setStatus(400);
                 pr.write(e.getMessage());
                 e.printStackTrace();
