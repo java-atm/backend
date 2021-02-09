@@ -7,6 +7,7 @@ import com.utils.exceptions.*;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.net.InetAddress;
 import java.sql.*;
 import java.util.ArrayList;
@@ -113,7 +114,7 @@ public class DatabaseClient {
             closeConnection(connection);
         }
     }
-    public static String getCustomerIDByCardID(String cardNumber, String pin) throws CustomerNotFoundException, ConnectionFailedException {
+    public static String getCustomerIDByCardID(Long cardNumber, String pin) throws CustomerNotFoundException, ConnectionFailedException {
         LOGGER.info("Starting to get customer ID by cardNumber '{}'.", cardNumber);
         Connection connection = getConnection();
         LOGGER.info("Connection established, creating ACCOUNT_BY_CARD_QUERY statement for '{}'", cardNumber);
@@ -121,7 +122,7 @@ public class DatabaseClient {
         try {
             PreparedStatement statement = connection.prepareStatement(ACCOUNT_BY_CARD_QUERY);
             statement.setString(1, pin);
-            statement.setString(2, cardNumber);
+            statement.setLong(2, cardNumber);
             ResultSet result = statement.executeQuery();
             LOGGER.info("Query ACCOUNT_BY_CARD_QUERY executed, processing results.");
             String acc = null;
@@ -361,7 +362,7 @@ public class DatabaseClient {
         }
     }
 
-    public static String getCustomerFullNameByAccountNumber(String accountNumber) throws CustomerNotFoundException, ConnectionFailedException {
+    public static String getCustomerFullNameByAccountNumber(Long accountNumber) throws CustomerNotFoundException, ConnectionFailedException {
         LOGGER.info("Starting to get customer full name by account number '{}'", accountNumber);
         Connection connection = getConnection();
         LOGGER.info("Connection established, creating CUSTOMER_ID_BY_ACCOUNT_QUERY statement for '{}'", accountNumber);
@@ -369,7 +370,7 @@ public class DatabaseClient {
         try {
             PreparedStatement statement = connection.prepareStatement(CUSTOMER_ID_BY_ACCOUNT_QUERY);
 
-            statement.setString(1, accountNumber);
+            statement.setLong(1, accountNumber);
             ResultSet result = statement.executeQuery();
             LOGGER.info("customerID Statement executed.");
             String customerID = null;
@@ -379,7 +380,7 @@ public class DatabaseClient {
 
             if (customerID == null) {
                 LOGGER.error("Customer ID not found for '{}'", accountNumber);
-                throw new CustomerNotFoundException("Customer not found");
+                throw new CustomerNotFoundException("Account not found");
             }
             LOGGER.info("Customer ID for '{}' is '{}', creating CUSTOMER_NAME_BY_CUSTOMER_ID", customerID, accountNumber);
             statement = connection.prepareStatement(CUSTOMER_NAME_BY_CUSTOMER_ID);
@@ -409,7 +410,7 @@ public class DatabaseClient {
     }
 
     public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException, NewPinTooLongException, PinChangeFailedException {
-        String customerID = getCustomerIDByCardID("9999999999999999re", "9999");
+        String customerID = getCustomerIDByCardID(Long.valueOf("9999999999999999"), "9999");
         System.out.println("Customer ID is : " + customerID);
 
         HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
@@ -434,7 +435,7 @@ public class DatabaseClient {
         transfer(fromAccount, toAccount, transferAmount, "AMD");
         changePin("9999999999999999", "9998");
         changePin("9999999999999999", "9999");
-        String customerName = getCustomerFullNameByAccountNumber("2222222222222222");
+        String customerName = getCustomerFullNameByAccountNumber(Long.valueOf("2222222222222222"));
         System.out.println(customerName);
 
         System.out.println(verifyATMID("HAT_INECOBANK_ATM_021"));
