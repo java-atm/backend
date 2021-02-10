@@ -22,9 +22,32 @@ public abstract class BaseServlet extends HttpServlet{
 
     protected abstract JSONObject performAction(JSONObject jsonObject) throws BaseDatabaseClientException, InvalidParameterException;
 
+    final protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+
+        LOGGER.info("Processing POST in '{}' from remote address: '{}'", this.getClass(), request.getRemoteAddr());
+        try (PrintWriter pr = response.getWriter()) {
+            LOGGER.info("Parsing JSON");
+            JSONObject payload = parseJSONFromRequest(request, response, pr);
+            JSONObject resultJSON = servletAction(response, pr, payload);
+            pr.print(resultJSON);
+            pr.flush();
+        } catch (ResponseAlreadySentException e) {
+            LOGGER.error("Response has been already processed: {}", e.getMessage(), e);
+        } catch (Throwable e) {
+            LOGGER.error("Something went wrong: {}", e.getMessage(), e);
+            response.setStatus(500);
+        }
+    }
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        response.setStatus(200);
+        LOGGER.info("Processing GET in '{}' from remote address: '{}'", this.getClass(), request.getRemoteAddr());
+    }
+
     protected JSONObject servletAction(HttpServletResponse response, PrintWriter pr, JSONObject jsonObject) throws ResponseAlreadySentException {
         JSONObject resultJson = new JSONObject();
         try {
+            validateATMID(response, jsonObject, pr);
             return performAction(jsonObject);
         } catch (BaseDatabaseClientException e) {
             LOGGER.error("Something went wrong during processing: {}", e.getMessage(), e);
@@ -59,60 +82,18 @@ public abstract class BaseServlet extends HttpServlet{
         return jsonObject;
     }
 
-    final public void validateATMID(HttpServletResponse response, JSONObject payload, PrintWriter pr) throws ResponseAlreadySentException {
+    final public void validateATMID(HttpServletResponse response, JSONObject payload, PrintWriter pr) throws ResponseAlreadySentException, InvalidParameterException, BaseDatabaseClientException{
         LOGGER.info("Verifying ATM ID");
-        JSONObject resultJson = new JSONObject();
-        String atm_id;
-        try {
-            atm_id = ParameterGetter.getATM_ID(payload, "atm_id");
-        } catch (InvalidParameterException e) {
-            LOGGER.error("Invalid parameters: {}", e.getMessage(), e);
-            response.setStatus(400);
-            resultJson.put("error", e.getMessage());
-            pr.print(resultJson);
-            pr.flush();
-            throw new ResponseAlreadySentException("Invalid parameters: " + e.getMessage());
-        }
-        try {
-            if (!DatabaseClient.verifyATMID(atm_id)) {
-                LOGGER.error("atm_id {} not validated", atm_id);
-                response.setStatus(403);
-                resultJson.put("error", "ATM ID not found");
-                pr.print(resultJson);
-                pr.flush();
-                throw new ResponseAlreadySentException("ATM ID is not found");
-            }
-        } catch (BaseDatabaseClientException e) {
-            LOGGER.error("Something went wrong during processing: {}", e.getMessage(), e);
-            response.setStatus(202);
-            resultJson.put("error", e.getMessage());
-            pr.print(resultJson);
-            pr.flush();
-            throw new ResponseAlreadySentException("Database throw an error: " + e.getMessage());
-        }
-        LOGGER.info("ATM ID verified.");
-    }
-
-    final protected void doPost(HttpServletRequest request, HttpServletResponse response) {
-
-        LOGGER.info("Processing POST in '{}' from remote address: '{}'", this.getClass(), request.getRemoteAddr());
-        try (PrintWriter pr = response.getWriter()) {
-            LOGGER.info("Parsing JSON");
-            JSONObject payload = parseJSONFromRequest(request, response, pr);
-            validateATMID(response, payload, pr);
-            JSONObject resultJSON = servletAction(response, pr, payload);
+        String atm_id = ParameterGetter.getATM_ID(payload, "atm_id");
+        if (!DatabaseClient.verifyATMID(atm_id)) {
+            JSONObject resultJSON = new JSONObject();
+            LOGGER.error("atm_id {} not validated", atm_id);
+            response.setStatus(403);
+            resultJSON.put("error", "ATM ID not found");
             pr.print(resultJSON);
             pr.flush();
-        } catch (ResponseAlreadySentException e) {
-            LOGGER.error("Response has been already processed: {}", e.getMessage(), e);
-        } catch (Exception e) {
-            LOGGER.error("Something went wrong: {}", e.getMessage(), e);
-            response.setStatus(500);
+            throw new ResponseAlreadySentException("ATM ID is not found");
         }
-    }
-
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-        response.setStatus(200);
-        LOGGER.info("Processing GET in '{}' from remote address: '{}'", this.getClass(), request.getRemoteAddr());
+        LOGGER.info("ATM ID verified.");
     }
 }
