@@ -2,70 +2,30 @@ package com.servlets;
 
 
 import com.database_client.DatabaseClient;
-import org.json.JSONException;
+import com.utils.exceptions.db_exceptions.BaseDatabaseClientException;
+import com.utils.exceptions.servlet_exceptions.InvalidParameterException;
+import com.utils.readers.ParameterGetter;
+import com.utils.servlet_helpers.BaseServlet;
 import org.json.JSONObject;
-import com.utils.readers.RequestReader;
-import com.utils.exceptions.AccountNotFoundException;
-import com.utils.exceptions.ConnectionFailedException;
-import com.utils.exceptions.NoEnoughMoneyException;
 
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.math.BigDecimal;
 
 
 @WebServlet(name = "TransferServlet", urlPatterns = "/transfer")
-public class TransferServlet extends HttpServlet {
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        try (PrintWriter pr = response.getWriter()) {
-            JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
-            try {
-                String atm_id = jsonObject.get("atm_id").toString();
-                if (! DatabaseClient.verifyATMID(atm_id)) {
-                    response.setStatus(400);
-                    pr.write("ATM ID not found");
-                    pr.flush();
-                    return;
-                }
-                String fromAccount = jsonObject.get("from").toString();
-                String toAccount = jsonObject.get("to").toString();
-                String currency = jsonObject.get("currency").toString();
-                BigDecimal amount = new BigDecimal(jsonObject.get("amount").toString());
-                if (amount.signum() == -1) {
-                    String message = "Negative transfer rejected";
-                    response.setStatus(400);
-                    pr.write(message);
-                    pr.flush();
-                    return;
-                }
-                if (toAccount.strip().equals(fromAccount.strip())) {
-                    String message = "From and To accounts are the same";
-                    response.setStatus(400);
-                    pr.write(message);
-                    pr.flush();
-                    return;
-                }
-                DatabaseClient.transfer(fromAccount, toAccount, amount, currency);
-                pr.print("Success");
-                pr.flush();
-            } catch (JSONException ex) {
-                response.setStatus(400);
-                pr.write(ex.getMessage());
-                pr.flush();
-            } catch (AccountNotFoundException | ConnectionFailedException | NoEnoughMoneyException e) {
-                response.setStatus(400);
-                pr.write(e.getMessage());
-                e.printStackTrace();
-                pr.flush();
-            }
+public class TransferServlet extends BaseServlet {
+    @Override
+    protected JSONObject performAction(JSONObject jsonObject) throws BaseDatabaseClientException, InvalidParameterException {
+        Long fromAccount = ParameterGetter.getAccountNumber(jsonObject, "from");
+        Long toAccount = ParameterGetter.getAccountNumber(jsonObject, "to");
+        String currency = ParameterGetter.getCurrency(jsonObject, "currency");
+        BigDecimal amount = ParameterGetter.getAmount(jsonObject, "amount");
+        if (fromAccount.equals(toAccount)) {
+            throw new InvalidParameterException("From and to accounts are the same");
         }
-    }
-
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-
+        DatabaseClient.transfer(fromAccount, toAccount, amount, currency);
+        JSONObject resultJSON = new JSONObject();
+        resultJSON.put("result", "Transfer completed.");
+        return resultJSON;
     }
 }

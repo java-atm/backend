@@ -1,4 +1,4 @@
-package com.utils.exceptions;
+package com.utils.exceptions.servlet_exceptions;
 
 public class InvalidParameterException extends Exception{
     public InvalidParameterException(String errorMessage) {

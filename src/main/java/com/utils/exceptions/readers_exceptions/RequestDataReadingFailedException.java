@@ -1,4 +1,4 @@
-package com.utils.exceptions;
+package com.utils.exceptions.readers_exceptions;
 
 public class RequestDataReadingFailedException extends RuntimeException{
     public RequestDataReadingFailedException(String errorMessage) {
