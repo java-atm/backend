@@ -1,45 +1,18 @@
 package com.servlets;
 
 
-import com.database_client.DatabaseClient;
-import org.json.JSONException;
+import com.utils.servlet_helpers.BaseServlet;
 import org.json.JSONObject;
-import com.utils.readers.RequestReader;
-import com.utils.exceptions.ConnectionFailedException;
 
 import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
 
 
 @WebServlet(name = "CheckConnectionServlet", urlPatterns = "/checkConnection")
-public class CheckConnectionServlet extends HttpServlet {
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        try (PrintWriter pr = response.getWriter()) {
-            JSONObject jsonObject = new JSONObject(RequestReader.getRequestData(request));
-            try {
-                String atm_id = jsonObject.get("atm_id").toString();
-                if (! DatabaseClient.verifyATMID(atm_id)) {
-                    response.setStatus(400);
-                    pr.write("ATM ID not found");
-                    pr.flush();
-                    return;
-                }
-                pr.print("Success");
-                pr.flush();
-            } catch (ConnectionFailedException | JSONException e) {
-                response.setStatus(400);
-                pr.write(e.getMessage());
-                e.printStackTrace();
-                pr.flush();
-            }
-        }
-    }
-
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
-
+public class CheckConnectionServlet extends BaseServlet {
+    @Override
+    protected JSONObject performAction(JSONObject jsonObject) {
+        JSONObject resultJSON = new JSONObject();
+        resultJSON.put("result", "Connection OK");
+        return resultJSON;
     }
 }

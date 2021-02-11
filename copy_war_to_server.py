@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 
 # Authorisation properties
 PATH_TO_PEM_FILE = "atm.pem"
@@ -14,6 +15,11 @@ HOST = USERNAME_OF_THE_SERVER + "@" + IP_OF_THE_SERVER + ":"
 FULL_DESTINATION_PATH = HOST + PATH_OF_THE_DESTINATION
 
 PATH_OF_THE_WAR_FILE = "target/webapps/backend.war"
+if len(sys.argv) == 2:
+    PATH_OF_THE_WAR_FILE = sys.argv[1]
+
+if not os.path.isfile(PATH_OF_THE_WAR_FILE):
+    raise RuntimeError("%s does not exist" % PATH_OF_THE_WAR_FILE)
 
 if not os.path.isfile(PATH_TO_PEM_FILE):
     raise RuntimeError("PEM file is not here, fix it you idiot, copy it to the current directory")
@@ -23,6 +29,7 @@ if not os.path.isfile(PATH_OF_THE_WAR_FILE):
 
 cmd = "scp -i %s %s %s" % (PATH_TO_PEM_FILE, PATH_OF_THE_WAR_FILE, FULL_DESTINATION_PATH)
 result = os.system(cmd)
+
 if result == 0:
     print("Successfully copied %s" % PATH_OF_THE_WAR_FILE)
     exit(0)
