@@ -1,7 +1,6 @@
 DROP DATABASE IF EXISTS bank_db;
 
 
-
 CREATE DATABASE IF NOT EXISTS bank_db;
 
 USE bank_db;
@@ -16,6 +15,7 @@ CREATE TABLE IF NOT EXISTS customers (
     PRIMARY KEY (id)
 );
 
+
 CREATE TABLE IF NOT EXISTS accounts (
     accountNumber BIGINT UNSIGNED NOT NULL,
     customerID BIGINT UNSIGNED NOT NULL,
@@ -26,14 +26,17 @@ CREATE TABLE IF NOT EXISTS accounts (
     FOREIGN KEY (customerID) REFERENCES customers(id)
 );
 
+
 CREATE TABLE IF NOT EXISTS cards (
     cardNumber BIGINT UNSIGNED NOT NULL,
     accountNumber BIGINT UNSIGNED NOT NULL,
     type ENUM ( "debit", "credit" ) NOT NULL,
-    pin CHAR(6) NOT NULL,
+    pinHash CHAR(64) NOT NULL,
+    pinSalt CHAR(64) NOT NULL,
     PRIMARY KEY (cardNumber),
     FOREIGN KEY (accountNumber) REFERENCES accounts(accountNumber)
 );
+
 
 CREATE TABLE IF NOT EXISTS atms (
     id VARCHAR(100) NOT NULL,
@@ -41,6 +44,7 @@ CREATE TABLE IF NOT EXISTS atms (
     currency ENUM ( "AMD", "RUB", "USD" ) NOT NULL,
     PRIMARY KEY (id)
 );
+
 
 INSERT INTO customers (
     name,
@@ -54,6 +58,7 @@ INSERT INTO customers (
     "abc90cba@mail.ru"
 );
 
+
 INSERT INTO customers (
     name,
     surname,
@@ -66,6 +71,7 @@ INSERT INTO customers (
     "cccccccc@mail.ru"
 );
 
+
 INSERT INTO customers (
     name,
     surname,
@@ -77,6 +83,7 @@ INSERT INTO customers (
     "+37455555555",
     "qqqqqqqq@mail.ru"
 );
+
 
 INSERT INTO accounts (
     accountNumber,
@@ -121,6 +128,7 @@ INSERT INTO accounts (
     "AMD",
     120000
 );
+
 
 INSERT INTO accounts (
     accountNumber,
@@ -182,7 +190,6 @@ INSERT INTO accounts (
 );
 
 
-
 INSERT INTO cards (
     cardNumber,
     accountNumber,
@@ -196,7 +203,6 @@ INSERT INTO cards (
 );
 
 
-
 INSERT INTO cards (
     cardNumber,
     accountNumber,
@@ -208,8 +214,6 @@ INSERT INTO cards (
     "debit",
     "8888"
 );
-
-
 
 
 INSERT INTO cards (
