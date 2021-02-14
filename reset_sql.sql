@@ -1,7 +1,6 @@
 DROP DATABASE IF EXISTS bank_db;
 
 
-
 CREATE DATABASE IF NOT EXISTS bank_db;
 
 USE bank_db;
@@ -16,6 +15,7 @@ CREATE TABLE IF NOT EXISTS customers (
     PRIMARY KEY (id)
 );
 
+
 CREATE TABLE IF NOT EXISTS accounts (
     accountNumber BIGINT UNSIGNED NOT NULL,
     customerID BIGINT UNSIGNED NOT NULL,
@@ -26,14 +26,18 @@ CREATE TABLE IF NOT EXISTS accounts (
     FOREIGN KEY (customerID) REFERENCES customers(id)
 );
 
+
 CREATE TABLE IF NOT EXISTS cards (
     cardNumber BIGINT UNSIGNED NOT NULL,
     accountNumber BIGINT UNSIGNED NOT NULL,
     type ENUM ( "debit", "credit" ) NOT NULL,
     pin CHAR(6) NOT NULL,
+    pinHash CHAR(88) NOT NULL,
+    pinSalt CHAR(88) NOT NULL,
     PRIMARY KEY (cardNumber),
     FOREIGN KEY (accountNumber) REFERENCES accounts(accountNumber)
 );
+
 
 CREATE TABLE IF NOT EXISTS atms (
     id VARCHAR(100) NOT NULL,
@@ -41,6 +45,7 @@ CREATE TABLE IF NOT EXISTS atms (
     currency ENUM ( "AMD", "RUB", "USD" ) NOT NULL,
     PRIMARY KEY (id)
 );
+
 
 INSERT INTO customers (
     name,
@@ -54,6 +59,7 @@ INSERT INTO customers (
     "abc90cba@mail.ru"
 );
 
+
 INSERT INTO customers (
     name,
     surname,
@@ -66,6 +72,7 @@ INSERT INTO customers (
     "cccccccc@mail.ru"
 );
 
+
 INSERT INTO customers (
     name,
     surname,
@@ -77,6 +84,7 @@ INSERT INTO customers (
     "+37455555555",
     "qqqqqqqq@mail.ru"
 );
+
 
 INSERT INTO accounts (
     accountNumber,
@@ -121,6 +129,7 @@ INSERT INTO accounts (
     "AMD",
     120000
 );
+
 
 INSERT INTO accounts (
     accountNumber,
@@ -182,46 +191,54 @@ INSERT INTO accounts (
 );
 
 
-
 INSERT INTO cards (
     cardNumber,
     accountNumber,
     type,
-    pin
+    pin,
+    pinSalt,
+    pinHash
 ) VALUES (
     9999999999999999,
     1111111111111111,
     "debit",
-    "9999"
+    "9999",
+    "cHYgtlmyZKMnXzH1047InzpI/IrKzLDMAmboKTyI9NqG7ywvvaClsghXuCbafrm2nT3olp/4M+PZTQwOp0RIgA==",
+    "FHqsslSuHBJwhI5Hv4TNM9tKfQIcJIX74Y9POBdCT8F84fZcdTnR+jRe+zGfySKIUIr99Lq/R8ejQttN3Ulm0A=="
 );
-
 
 
 INSERT INTO cards (
     cardNumber,
     accountNumber,
     type,
-    pin
+    pin,
+    pinSalt,
+    pinHash
 ) VALUES (
     8888888888888888,
     4444444444444444,
     "debit",
-    "8888"
+    "8888",
+    "TdGQgZZufHcvlnktu/kLWqs9DOWH9D0Sltraveb9D5dGYENerquuJoheIQHTjAqtccZnhPXlN50zyp7mZNMctQ==",
+    "m9hFPif/jnD80U0AIxdnTWiHullat3kF5FiDN+wEY8UKKOijk+R370/7XFDv7unVsOy/91sgVHRhZk+N+9Ld7g=="
 );
-
-
 
 
 INSERT INTO cards (
     cardNumber,
     accountNumber,
     type,
-    pin
+    pin,
+    pinSalt,
+    pinHash
 ) VALUES (
     7777777777777777,
     6666666666666666,
     "debit",
-    "7777"
+    "7777",
+    "EgF5i6fQrD5bmDjvmxRlRx8jt4bSQGvtWt3wy2KNnIF0EO5vDwULvFZm6E+zbKnkEZc0mckzA4JHOZ9UKJcf7Q==",
+    "lYuPrG0mufx3gW7LQVIOojw+otqepuSAqQRbX5UpV+g70k87nRCU+EwplBrF0I7yjV8anNuRpd6o0zI4hD+UUA=="
 );
 
 

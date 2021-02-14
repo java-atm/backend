@@ -26,6 +26,7 @@
         <Logger name="com" level="info" additivity="true">
             <AppenderRef ref="backend_error_logs" level="error"/>
             <AppenderRef ref="backend_logs" level="info"/>
+            <AppenderRef ref="console-log" level="info"/>
         </Logger>
         <Root level="fatal" additivity="false">
             <AppenderRef ref="console-log"/>
