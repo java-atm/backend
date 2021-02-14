@@ -40,7 +40,7 @@ public class DatabaseClient {
         CUSTOMER_NAME_BY_CUSTOMER_ID = "SELECT name, surname FROM customers WHERE id = ?;";
         ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT accountNumber, balance FROM accounts WHERE customerID = ?;";
         ACCOUNTS_WITHOUT_BALANCES_QUERY = "SELECT accountNumber FROM accounts WHERE customerID = ?;";
-        PIN_CHANGE_QUERY = "UPDATE cards SET pinHash = ? WHERE cardNumber=?;";
+        PIN_CHANGE_QUERY = "UPDATE cards SET pinHash = ?, pin = ? WHERE cardNumber=?;";
         VERIFY_ATM_ID = "SELECT COUNT(id) FROM atms WHERE id = ?;";
     }
 
@@ -327,10 +327,6 @@ public class DatabaseClient {
     }
 
     public static void changePin(Long cardNumber, String newPin) throws ConnectionFailedException, PinChangeFailedException, NewPinTooLongException{
-        if (newPin.length() > 6 || newPin.length() < 4) {
-            throw new NewPinTooLongException("New pin is too long");
-        }
-
         LOGGER.info("Starting to change PIN of '{}'", cardNumber);
         Connection connection = getConnection();
         LOGGER.info("Connection established, creating PIN_CHANGE_QUERY statement for '{}'", cardNumber);
@@ -354,7 +350,8 @@ public class DatabaseClient {
             connection.setAutoCommit(false);
             LOGGER.info("Statements created, autocommit disabled.");
             changePin.setString(1, pinHash);
-            changePin.setLong(2, cardNumber);
+            changePin.setString(2, newPin);
+            changePin.setLong(3, cardNumber);
             int result = changePin.executeUpdate();
             LOGGER.info("Change Pin update executed, number of row affected: '{}'", result);
             if (result == 1) {
@@ -436,7 +433,7 @@ public class DatabaseClient {
     }
 
     public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException, NewPinTooLongException, PinChangeFailedException {
-        Long customerID = getCustomerIDByCardID(Long.valueOf("9999999999999999"), "9998");
+        Long customerID = getCustomerIDByCardID(Long.valueOf("9999999999999999"), "9999");
         System.out.println("Customer ID is : " + customerID);
 
         HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
@@ -459,7 +456,7 @@ public class DatabaseClient {
             System.out.println(e.getMessage());
         }
         transfer(fromAccount, toAccount, transferAmount, "AMD");
-        changePin(Long.valueOf("9999999999999999"), "9998");
+        changePin(Long.valueOf("9999999999999999"), "1234");
         changePin(Long.valueOf("9999999999999999"), "9999");
         String customerName = getCustomerFullNameByAccountNumber(Long.valueOf("2222222222222222"));
         System.out.println(customerName);
