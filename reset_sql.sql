@@ -31,8 +31,9 @@ CREATE TABLE IF NOT EXISTS cards (
     cardNumber BIGINT UNSIGNED NOT NULL,
     accountNumber BIGINT UNSIGNED NOT NULL,
     type ENUM ( "debit", "credit" ) NOT NULL,
-    pinHash CHAR(64) NOT NULL,
-    pinSalt CHAR(64) NOT NULL,
+    pin CHAR(6) NOT NULL,
+    pinHash CHAR(88) NOT NULL,
+    pinSalt CHAR(88) NOT NULL,
     PRIMARY KEY (cardNumber),
     FOREIGN KEY (accountNumber) REFERENCES accounts(accountNumber)
 );
@@ -194,12 +195,16 @@ INSERT INTO cards (
     cardNumber,
     accountNumber,
     type,
-    pin
+    pin,
+    pinSalt,
+    pinHash
 ) VALUES (
     9999999999999999,
     1111111111111111,
     "debit",
-    "9999"
+    "9999",
+    "cHYgtlmyZKMnXzH1047InzpI/IrKzLDMAmboKTyI9NqG7ywvvaClsghXuCbafrm2nT3olp/4M+PZTQwOp0RIgA==",
+    "FHqsslSuHBJwhI5Hv4TNM9tKfQIcJIX74Y9POBdCT8F84fZcdTnR+jRe+zGfySKIUIr99Lq/R8ejQttN3Ulm0A=="
 );
 
 
@@ -207,12 +212,16 @@ INSERT INTO cards (
     cardNumber,
     accountNumber,
     type,
-    pin
+    pin,
+    pinSalt,
+    pinHash
 ) VALUES (
     8888888888888888,
     4444444444444444,
     "debit",
-    "8888"
+    "8888",
+    "TdGQgZZufHcvlnktu/kLWqs9DOWH9D0Sltraveb9D5dGYENerquuJoheIQHTjAqtccZnhPXlN50zyp7mZNMctQ==",
+    "m9hFPif/jnD80U0AIxdnTWiHullat3kF5FiDN+wEY8UKKOijk+R370/7XFDv7unVsOy/91sgVHRhZk+N+9Ld7g=="
 );
 
 
@@ -220,12 +229,16 @@ INSERT INTO cards (
     cardNumber,
     accountNumber,
     type,
-    pin
+    pin,
+    pinSalt,
+    pinHash
 ) VALUES (
     7777777777777777,
     6666666666666666,
     "debit",
-    "7777"
+    "7777",
+    "EgF5i6fQrD5bmDjvmxRlRx8jt4bSQGvtWt3wy2KNnIF0EO5vDwULvFZm6E+zbKnkEZc0mckzA4JHOZ9UKJcf7Q==",
+    "lYuPrG0mufx3gW7LQVIOojw+otqepuSAqQRbX5UpV+g70k87nRCU+EwplBrF0I7yjV8anNuRpd6o0zI4hD+UUA=="
 );
 
 

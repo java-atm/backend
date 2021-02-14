@@ -2,6 +2,8 @@ package com.database_client;
 
 
 import com.utils.exceptions.db_exceptions.*;
+import com.utils.exceptions.security_exceptions.PasswordHashingFailedException;
+import com.utils.security.PasswordHashingClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,12 +35,12 @@ public class DatabaseClient {
     static {
         DEPOSIT_QUERY = "UPDATE accounts SET balance = balance + ? WHERE accountNumber = ? AND currency = ?;";
         WITHDRAW_QUERY = "UPDATE accounts SET balance = balance - ? WHERE accountNumber = ? AND currency = ?;";
-        ACCOUNT_BY_CARD_QUERY = "SELECT accountNumber FROM cards WHERE pin = ? AND cardNumber = ?;";
+        ACCOUNT_BY_CARD_QUERY = "SELECT accountNumber, pinSalt, pinHash FROM cards WHERE cardNumber = ?;";
         CUSTOMER_ID_BY_ACCOUNT_QUERY = "SELECT customerID FROM accounts WHERE accountNumber = ?;";
         CUSTOMER_NAME_BY_CUSTOMER_ID = "SELECT name, surname FROM customers WHERE id = ?;";
         ACCOUNTS_OF_CUSTOMER_QUERY = "SELECT accountNumber, balance FROM accounts WHERE customerID = ?;";
         ACCOUNTS_WITHOUT_BALANCES_QUERY = "SELECT accountNumber FROM accounts WHERE customerID = ?;";
-        PIN_CHANGE_QUERY = "UPDATE cards SET pin = ? WHERE cardNumber=?;";
+        PIN_CHANGE_QUERY = "UPDATE cards SET pinHash = ? WHERE cardNumber=?;";
         VERIFY_ATM_ID = "SELECT COUNT(id) FROM atms WHERE id = ?;";
     }
 
@@ -120,20 +122,26 @@ public class DatabaseClient {
 
         try {
             PreparedStatement statement = connection.prepareStatement(ACCOUNT_BY_CARD_QUERY);
-            statement.setString(1, pin);
-            statement.setLong(2, cardNumber);
+            statement.setLong(1, cardNumber);
             ResultSet result = statement.executeQuery();
             LOGGER.info("Query ACCOUNT_BY_CARD_QUERY executed, processing results.");
             String acc = null;
+            String salt = null;
+            String hash = null;
             while (result.next()) {
                 acc = result.getString("accountNUmber");
+                salt = result.getString("pinSalt");
+                hash = result.getString("pinHash");
             }
-            if (acc == null) {
-                LOGGER.error("No account found for CARD: '{}'", cardNumber);
+            if (acc == null || salt == null || hash == null) {
+                LOGGER.error("No account found for CARD: '{}', acc: '{}, salt: '{}', hash: '{}'", cardNumber, acc, salt, hash);
                 throw new CustomerNotFoundException("Invalid credentials.");
             }
             LOGGER.info("Found '{}' using CARD: '{}'", acc, cardNumber);
-
+            String pinHash = PasswordHashingClient.hashThePassword(salt, pin);
+            if (! pinHash.equals(hash)){
+                throw new CustomerNotFoundException("Incorrect pin");
+            }
             LOGGER.info("Creating CUSTOMER_ID_BY_ACCOUNT_QUERY statement for '{}'", acc);
             statement = connection.prepareStatement(CUSTOMER_ID_BY_ACCOUNT_QUERY);
             statement.setString(1, acc);
@@ -151,7 +159,7 @@ public class DatabaseClient {
             }
             LOGGER.info("Customer ID: '{}', account number: '{}', card: '{}'", customerID, acc, cardNumber);
             return customerID;
-        } catch (SQLException e) {
+        } catch (SQLException | PasswordHashingFailedException e) {
             LOGGER.error("Failed to get customer ID for '{}': '{}'", cardNumber, e.getMessage(), e);
             throw new CustomerNotFoundException("Customer not found");
         } finally {
@@ -319,14 +327,33 @@ public class DatabaseClient {
     }
 
     public static void changePin(Long cardNumber, String newPin) throws ConnectionFailedException, PinChangeFailedException, NewPinTooLongException{
+        if (newPin.length() > 6 || newPin.length() < 4) {
+            throw new NewPinTooLongException("New pin is too long");
+        }
+
         LOGGER.info("Starting to change PIN of '{}'", cardNumber);
         Connection connection = getConnection();
         LOGGER.info("Connection established, creating PIN_CHANGE_QUERY statement for '{}'", cardNumber);
 
-        try (PreparedStatement changePin = connection.prepareStatement(PIN_CHANGE_QUERY)) {
+        try {
+            PreparedStatement getSaltStatement = connection.prepareStatement(ACCOUNT_BY_CARD_QUERY);
+            getSaltStatement.setLong(1, cardNumber);
+            ResultSet resultSalt = getSaltStatement.executeQuery();
+            LOGGER.info("Query ACCOUNT_BY_CARD_QUERY executed, processing results.");
+            String salt = null;
+            while (resultSalt.next()) {
+                salt = resultSalt.getString("pinSalt");
+            }
+            if (salt == null) {
+                LOGGER.error("No account found for CARD: '{}', salt: '{}'", cardNumber, salt);
+                throw new PinChangeFailedException("Invalid credentials.");
+            }
+            LOGGER.info("Hashing the password using CARD: '{}'", cardNumber);
+            String pinHash = PasswordHashingClient.hashThePassword(salt, newPin);
+            PreparedStatement changePin = connection.prepareStatement(PIN_CHANGE_QUERY);
             connection.setAutoCommit(false);
             LOGGER.info("Statements created, autocommit disabled.");
-            changePin.setString(1, newPin);
+            changePin.setString(1, pinHash);
             changePin.setLong(2, cardNumber);
             int result = changePin.executeUpdate();
             LOGGER.info("Change Pin update executed, number of row affected: '{}'", result);
@@ -338,7 +365,7 @@ public class DatabaseClient {
                 LOGGER.error("Row affect by pin change for '{}' is '{}'", cardNumber, result);
                 throw new PinChangeFailedException("Failed to change pin");
             }
-        } catch (SQLException e) {
+        } catch (SQLException | PasswordHashingFailedException e) {
             try {
                 connection.rollback();
                 LOGGER.info("Rolled back.");
@@ -409,7 +436,7 @@ public class DatabaseClient {
     }
 
     public static void main(String[] args) throws CustomerNotFoundException, NoEnoughMoneyException, AccountNotFoundException, ConnectionFailedException, NewPinTooLongException, PinChangeFailedException {
-        Long customerID = getCustomerIDByCardID(Long.valueOf("9999999999999999"), "9999");
+        Long customerID = getCustomerIDByCardID(Long.valueOf("9999999999999999"), "9998");
         System.out.println("Customer ID is : " + customerID);
 
         HashMap<String, BigDecimal> result = getCustomerBalances(customerID);
