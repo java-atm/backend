@@ -23,7 +23,7 @@ public interface RequestReader {
             while ((line = requestReader.readLine()) != null) {
                 requestData.append(line);
             }
-            LOGGER.info("String reading finished : {}", requestData.toString());
+            LOGGER.info("String reading finished");
             return requestData.toString();
         } catch (IOException e) {
             LOGGER.error("Failed to read string data: {}", e.getMessage(), e);
@@ -42,7 +42,7 @@ public interface RequestReader {
         }
         try {
             JSONObject j = new JSONObject(requestData);
-            LOGGER.info("JSON created: {}", j.toString());
+            LOGGER.info("JSON created");
             return j;
         } catch (JSONException e) {
             LOGGER.error("Failed to parse JSON: {}", e.getMessage(), e);
